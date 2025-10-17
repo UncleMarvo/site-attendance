@@ -16,16 +16,24 @@ public class BackendApi
     {
         _logger = logger;
         
-        // Create HttpClient with proper timeout and configuration
-        var handler = new HttpClientHandler();
+        // Create HttpClient with proper configuration for mobile platforms
+        var handler = new HttpClientHandler
+        {
+            // Allow automatic decompression for better performance
+            AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+        };
         
         _http = new HttpClient(handler)
         {
             BaseAddress = new Uri(BaseUrl),
-            Timeout = TimeSpan.FromSeconds(30) // Reasonable timeout for mobile networks
+            Timeout = TimeSpan.FromSeconds(30) // 30 second timeout for mobile networks
         };
         
-        _logger.LogInformation("BackendApi initialized with base URL: {BaseUrl}", BaseUrl);
+        // Set default headers
+        _http.DefaultRequestHeaders.Add("User-Agent", "SiteAttendance-Mobile/1.0");
+        
+        _logger.LogInformation("BackendApi initialized with base URL: {BaseUrl}, Timeout: {Timeout}s", 
+            BaseUrl, _http.Timeout.TotalSeconds);
     }
 
     public async Task<MobileBootstrapResponse?> GetConfigAsync(string userId, CancellationToken ct = default)
@@ -35,22 +43,31 @@ public class BackendApi
             _logger.LogInformation("Fetching config for user {UserId} from {Url}", 
                 userId, $"{BaseUrl}/config/mobile?userId={userId}");
             
+            // Use CancellationTokenSource to enforce our own timeout
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(30));
+            
             var response = await _http.GetFromJsonAsync<MobileBootstrapResponse>(
-                $"/config/mobile?userId={userId}", ct);
+                $"/config/mobile?userId={userId}", cts.Token);
             
             _logger.LogInformation("Fetched config for user {UserId}: {SiteCount} sites", 
                 userId, response?.Sites.Count ?? 0);
             
             return response;
         }
-        catch (TaskCanceledException ex)
+        catch (OperationCanceledException ex) when (!ct.IsCancellationRequested)
+        {
+            _logger.LogError(ex, "Request timed out after 30 seconds while fetching config from {BaseUrl}", BaseUrl);
+            throw new Exception($"Connection timed out after 30 seconds. Please check your internet connection.", ex);
+        }
+        catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
         {
             _logger.LogError(ex, "Request timed out while fetching config from {BaseUrl}", BaseUrl);
-            throw new Exception($"Connection to server timed out. Please check your internet connection.", ex);
+            throw new Exception($"Connection timed out. Please check your internet connection.", ex);
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Network error while fetching config from {BaseUrl}", BaseUrl);
+            _logger.LogError(ex, "Network error while fetching config from {BaseUrl}. Message: {Message}", BaseUrl, ex.Message);
             throw new Exception($"Cannot reach server at {BaseUrl}. Error: {ex.Message}", ex);
         }
         catch (Exception ex)
@@ -67,20 +84,29 @@ public class BackendApi
             _logger.LogInformation("Posting {EventType} event for site {SiteId}", 
                 request.EventType, request.SiteId);
             
-            var response = await _http.PostAsJsonAsync("/events/geofence", request, ct);
+            // Use CancellationTokenSource to enforce our own timeout
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(30));
+            
+            var response = await _http.PostAsJsonAsync("/events/geofence", request, cts.Token);
             response.EnsureSuccessStatusCode();
             
             _logger.LogInformation("Posted geofence {EventType} event for site {SiteId}", 
                 request.EventType, request.SiteId);
         }
-        catch (TaskCanceledException ex)
+        catch (OperationCanceledException ex) when (!ct.IsCancellationRequested)
+        {
+            _logger.LogError(ex, "Request timed out after 30 seconds posting geofence event");
+            throw new Exception("Connection timed out after 30 seconds.", ex);
+        }
+        catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
         {
             _logger.LogError(ex, "Request timed out posting geofence event");
-            throw new Exception("Connection to server timed out.", ex);
+            throw new Exception("Connection timed out.", ex);
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Network error posting geofence event");
+            _logger.LogError(ex, "Network error posting geofence event. Message: {Message}", ex.Message);
             throw new Exception($"Cannot reach server. Error: {ex.Message}", ex);
         }
         catch (Exception ex)
