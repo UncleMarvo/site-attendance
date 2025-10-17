@@ -53,8 +53,8 @@ public class SiteAttendanceGeofenceDelegate : IGeofenceDelegate
 
             await _api.PostGeofenceEventAsync(request);
 
-            // Show local notification
-            await _notificationService.ShowNotificationAsync(
+            // Show local notification (sync method)
+            _notificationService.ShowNotification(
                 title: $"Site {eventType}",
                 message: $"You {eventType.ToLower()}ed site: {region.Identifier}"
             );
@@ -66,7 +66,7 @@ public class SiteAttendanceGeofenceDelegate : IGeofenceDelegate
             _logger.LogError(ex, "Failed to process geofence event for {SiteId}", region.Identifier);
             
             // Still show notification even if backend fails
-            await _notificationService.ShowNotificationAsync(
+            _notificationService.ShowNotification(
                 title: "Geofence Event (Offline)",
                 message: $"Site {eventType}: {region.Identifier} (not synced)"
             );
