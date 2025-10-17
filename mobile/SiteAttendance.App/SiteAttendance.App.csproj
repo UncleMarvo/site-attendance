@@ -7,7 +7,6 @@
     <SingleProject>true</SingleProject>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <EnableDefaultMauiItems>false</EnableDefaultMauiItems>
 
     <!-- Display name -->
     <ApplicationTitle>SiteAttendance</ApplicationTitle>
@@ -35,20 +34,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SiteAttendance.App.Core\SiteAttendance.App.Core.csproj" />
-  </ItemGroup>
-
-  <!-- C# Source Files -->
-  <ItemGroup>
-    <Compile Include="**\*.cs" Exclude="obj\**\*.cs;bin\**\*.cs" />
-  </ItemGroup>
-
-  <!-- XAML Files -->
-  <ItemGroup>
-    <MauiXaml Include="App.xaml" />
-    <MauiXaml Include="AppShell.xaml" />
-    <MauiXaml Include="MainPage.xaml" />
-    <MauiXaml Include="Resources\Styles\Colors.xaml" />
-    <MauiXaml Include="Resources\Styles\Styles.xaml" />
   </ItemGroup>
 
   <!-- MAUI Resources -->
