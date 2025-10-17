@@ -15,22 +15,47 @@ public class BackendApi
     public BackendApi(ILogger<BackendApi> logger)
     {
         _logger = logger;
-        _http = new HttpClient { BaseAddress = new Uri(BaseUrl) };
+        
+        // Create HttpClient with proper timeout and configuration
+        var handler = new HttpClientHandler();
+        
+        _http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri(BaseUrl),
+            Timeout = TimeSpan.FromSeconds(30) // Reasonable timeout for mobile networks
+        };
+        
+        _logger.LogInformation("BackendApi initialized with base URL: {BaseUrl}", BaseUrl);
     }
 
     public async Task<MobileBootstrapResponse?> GetConfigAsync(string userId, CancellationToken ct = default)
     {
         try
         {
+            _logger.LogInformation("Fetching config for user {UserId} from {Url}", 
+                userId, $"{BaseUrl}/config/mobile?userId={userId}");
+            
             var response = await _http.GetFromJsonAsync<MobileBootstrapResponse>(
                 $"/config/mobile?userId={userId}", ct);
+            
             _logger.LogInformation("Fetched config for user {UserId}: {SiteCount} sites", 
                 userId, response?.Sites.Count ?? 0);
+            
             return response;
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "Request timed out while fetching config from {BaseUrl}", BaseUrl);
+            throw new Exception($"Connection to server timed out. Please check your internet connection.", ex);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error while fetching config from {BaseUrl}", BaseUrl);
+            throw new Exception($"Cannot reach server at {BaseUrl}. Error: {ex.Message}", ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to fetch config from {BaseUrl}", BaseUrl);
+            _logger.LogError(ex, "Unexpected error fetching config from {BaseUrl}", BaseUrl);
             throw;
         }
     }
@@ -39,10 +64,24 @@ public class BackendApi
     {
         try
         {
+            _logger.LogInformation("Posting {EventType} event for site {SiteId}", 
+                request.EventType, request.SiteId);
+            
             var response = await _http.PostAsJsonAsync("/events/geofence", request, ct);
             response.EnsureSuccessStatusCode();
+            
             _logger.LogInformation("Posted geofence {EventType} event for site {SiteId}", 
                 request.EventType, request.SiteId);
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "Request timed out posting geofence event");
+            throw new Exception("Connection to server timed out.", ex);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error posting geofence event");
+            throw new Exception($"Cannot reach server. Error: {ex.Message}", ex);
         }
         catch (Exception ex)
         {
