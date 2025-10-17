@@ -1,23 +1,21 @@
-using Android.App;
-using Android.Content;
-using Android.Gms.Location;
-using Android.Gms.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.ApplicationModel;
 using SiteAttendance.App.Core;
 
 namespace SiteAttendance.App.Platforms.Android;
 
+/// <summary>
+/// Android geofencing service - STUB IMPLEMENTATION
+/// TODO: Implement proper geofencing using Google Play Services Location API
+/// The Xamarin bindings don't expose GeofencingClient in the expected namespace
+/// </summary>
 public class AndroidGeofenceService : IGeofenceService
 {
     private readonly ILogger<AndroidGeofenceService> _logger;
-    private readonly global::Android.Gms.Location.GeofencingClient _client;
-    private PendingIntent? _pendingIntent;
 
     public AndroidGeofenceService(ILogger<AndroidGeofenceService> logger)
     {
         _logger = logger;
-        _client = global::Android.Gms.Location.LocationServices.GetGeofencingClient(Platform.AppContext);
     }
 
     public async Task<bool> RequestPermissionsAsync()
@@ -52,125 +50,21 @@ public class AndroidGeofenceService : IGeofenceService
         }
     }
 
-    public async Task RegisterGeofencesAsync(List<Site> sites)
+    public Task RegisterGeofencesAsync(List<Site> sites)
     {
-        try
-        {
-            var geofences = new List<global::Android.Gms.Location.IGeofence>();
-
-            foreach (var site in sites)
-            {
-                var geofence = new global::Android.Gms.Location.GeofenceBuilder()
-                    .SetRequestId(site.Id)
-                    .SetCircularRegion(site.Latitude, site.Longitude, site.RadiusMeters)
-                    .SetExpirationDuration(global::Android.Gms.Location.Geofence.NeverExpire)
-                    .SetTransitionTypes(global::Android.Gms.Location.Geofence.GeofenceTransitionEnter | global::Android.Gms.Location.Geofence.GeofenceTransitionExit)
-                    .Build();
-
-                geofences.Add(geofence);
-            }
-
-            var request = new global::Android.Gms.Location.GeofencingRequest.Builder()
-                .SetInitialTrigger(global::Android.Gms.Location.GeofencingRequest.InitialTriggerEnter)
-                .AddGeofences(geofences)
-                .Build();
-
-            _pendingIntent = GetGeofencePendingIntent();
-
-            await _client.AddGeofencesAsync(request, _pendingIntent);
-
-            _logger.LogInformation("Registered {Count} geofences", sites.Count);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to register geofences");
-            throw;
-        }
+        _logger.LogWarning("STUB: Geofence registration not yet implemented. Need to add proper Google Play Services bindings.");
+        _logger.LogInformation("Would register {Count} geofences", sites.Count);
+        
+        // TODO: Implement actual geofencing
+        // See: https://learn.microsoft.com/en-us/xamarin/android/platform/maps-and-location/location
+        // May need additional packages or direct Java interop
+        
+        return Task.CompletedTask;
     }
 
-    public async Task UnregisterAllGeofencesAsync()
+    public Task UnregisterAllGeofencesAsync()
     {
-        try
-        {
-            if (_pendingIntent != null)
-            {
-                await _client.RemoveGeofencesAsync(_pendingIntent);
-                _logger.LogInformation("Unregistered all geofences");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to unregister geofences");
-            throw;
-        }
-    }
-
-    private PendingIntent GetGeofencePendingIntent()
-    {
-        if (_pendingIntent != null)
-        {
-            return _pendingIntent;
-        }
-
-        var intent = new Intent(Platform.AppContext, typeof(GeofenceBroadcastReceiver));
-        _pendingIntent = PendingIntent.GetBroadcast(
-            Platform.AppContext,
-            0,
-            intent,
-            PendingIntentFlags.Mutable | PendingIntentFlags.UpdateCurrent
-        );
-
-        return _pendingIntent;
-    }
-}
-
-// ============================================================================
-// BROADCAST RECEIVER (handles geofence transitions in background)
-// ============================================================================
-[BroadcastReceiver(Enabled = true, Exported = true)]
-public class GeofenceBroadcastReceiver : BroadcastReceiver
-{
-    public override void OnReceive(Context? context, Intent? intent)
-    {
-        if (intent == null || context == null)
-        {
-            return;
-        }
-
-        var geofencingEvent = global::Android.Gms.Location.GeofencingEvent.FromIntent(intent);
-        if (geofencingEvent == null || geofencingEvent.HasError)
-        {
-            System.Diagnostics.Debug.WriteLine($"Geofence error: {geofencingEvent?.ErrorCode}");
-            return;
-        }
-
-        var transition = geofencingEvent.GeofenceTransition;
-        var triggeringGeofences = geofencingEvent.TriggeringGeofences;
-
-        if (triggeringGeofences == null || triggeringGeofences.Count == 0)
-        {
-            return;
-        }
-
-        var eventType = transition switch
-        {
-            global::Android.Gms.Location.Geofence.GeofenceTransitionEnter => "Enter",
-            global::Android.Gms.Location.Geofence.GeofenceTransitionExit => "Exit",
-            _ => null
-        };
-
-        if (eventType == null)
-        {
-            return;
-        }
-
-        foreach (var geofence in triggeringGeofences)
-        {
-            var siteId = geofence.RequestId;
-            System.Diagnostics.Debug.WriteLine($"Geofence {eventType}: {siteId}");
-
-            // TODO: Post event to backend via background service
-            // For MVP, just log. In production, use WorkManager or foreground service
-        }
+        _logger.LogWarning("STUB: Geofence unregistration not yet implemented");
+        return Task.CompletedTask;
     }
 }
