@@ -21,7 +21,7 @@ public partial class MainPage : ContentPage
         {
             StatusLabel.Text = "Initializing...";
             await _configService.InitializeAsync("user-demo");
-            StatusLabel.Text = "Initialized!";
+            StatusLabel.Text = $"Initialized! Found {_configService.Sites.Count} sites";
         }
         catch (Exception ex)
         {
@@ -30,34 +30,27 @@ public partial class MainPage : ContentPage
         }
     }
 
-    private async void OnFetchSitesClicked(object sender, EventArgs e)
-    {
-        try
-        {
-            StatusLabel.Text = "Fetching sites...";
-            var sites = await _configService.FetchAndStoreSitesAsync();
-            StatusLabel.Text = $"Found {sites.Count} sites";
-        }
-        catch (Exception ex)
-        {
-            StatusLabel.Text = $"Error: {ex.Message}";
-            _logger.LogError(ex, "Failed to fetch sites");
-        }
-    }
-
     private async void OnSimulateEnterClicked(object sender, EventArgs e)
     {
         try
         {
-            var sites = await _configService.GetStoredSitesAsync();
-            if (sites.Count == 0)
+            if (_configService.Sites.Count == 0)
             {
-                StatusLabel.Text = "No sites available. Fetch sites first.";
+                StatusLabel.Text = "No sites available. Initialize first.";
                 return;
             }
 
-            var site = sites[0];
-            StatusLabel.Text = $"Simulated enter: {site.Name}";
+            var site = _configService.Sites[0];
+            
+            // Simulate a geofence enter event
+            await _configService.SimulateGeofenceEventAsync(
+                siteId: site.Id,
+                eventType: "Enter",
+                latitude: site.Latitude,
+                longitude: site.Longitude
+            );
+            
+            StatusLabel.Text = $"Simulated ENTER at: {site.Name}";
         }
         catch (Exception ex)
         {
