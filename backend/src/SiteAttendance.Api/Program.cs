@@ -1,6 +1,9 @@
 using SiteAttendance.Application;
 using SiteAttendance.Domain;
 using SiteAttendance.Infrastructure;
+using SiteAttendance.Infrastructure.Data;
+using SiteAttendance.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,11 +17,18 @@ builder.Services.AddHttpClient();
 // Domain services
 builder.Services.AddSingleton<IClock, SystemClock>();
 
-// Repositories (in-memory for MVP)
-builder.Services.AddSingleton<IGeofenceEventRepository, InMemoryGeofenceEventRepository>();
-builder.Services.AddSingleton<ISiteRepository, InMemorySiteRepository>();
-builder.Services.AddSingleton<IAssignmentRepository, InMemoryAssignmentRepository>();
-builder.Services.AddSingleton<ISettingsRepository, InMemorySettingsRepository>();
+// Add DbContext with PostgreSQL
+builder.Services.AddDbContext<SiteAttendanceDbContext>(options =>
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        npgsqlOptions => npgsqlOptions.EnableRetryOnFailure()
+    ));
+
+// Repositories (EF Core + PostgreSQL)
+builder.Services.AddScoped<IGeofenceEventRepository, EfGeofenceEventRepository>();
+builder.Services.AddScoped<ISiteRepository, EfSiteRepository>();
+builder.Services.AddScoped<IAssignmentRepository, EfAssignmentRepository>();
+builder.Services.AddSingleton<ISettingsRepository, InMemorySettingsRepository>(); // Keep in-memory for now
 
 // Providers (swappable)
 builder.Services.AddSingleton<IPushProvider, MockPushProvider>();
@@ -29,6 +39,18 @@ builder.Services.AddScoped<LogGeofenceEventHandler>();
 builder.Services.AddScoped<GetMobileBootstrap>();
 
 var app = builder.Build();
+
+// Initialize database and seed data
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<SiteAttendanceDbContext>();
+    
+    // Apply any pending migrations
+    await db.Database.MigrateAsync();
+    
+    // Seed initial data
+    await DbInitializer.SeedAsync(db);
+}
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
