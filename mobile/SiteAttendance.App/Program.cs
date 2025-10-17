@@ -1,14 +1,11 @@
-using Microsoft.Maui;
-using Microsoft.Maui.Hosting;
-
 namespace SiteAttendance.App;
 
 public static class Program
 {
     static void Main(string[] args)
     {
-        MauiProgram
-            .CreateMauiApp()
-            .Run();
+        var app = MauiProgram.CreateMauiApp();
+        var mauiApp = app.Services.GetRequiredService<IApplication>();
+        mauiApp.CreateWindow(null);
     }
 }
