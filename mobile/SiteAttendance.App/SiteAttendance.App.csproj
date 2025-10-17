@@ -36,13 +36,13 @@
     <Compile Include="Platforms\iOS\**\*.cs" />
   </ItemGroup>
 
-  <!-- REMOVED: Google Play Services packages temporarily until we implement proper geofencing -->
-  <!-- These were causing AndroidX SavedState class conflicts -->
-  <!-- Will add back when implementing real Android geofencing -->
-  
   <ItemGroup>
     <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
+    
+    <!-- Shiny.NET for background services and geofencing -->
+    <PackageReference Include="Shiny.Hosting.Maui" Version="3.3.4" />
+    <PackageReference Include="Shiny.Locations" Version="3.3.4" />
   </ItemGroup>
 
   <ItemGroup>
