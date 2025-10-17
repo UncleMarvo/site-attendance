@@ -52,10 +52,11 @@ public class ShinyGeofenceService : IGeofenceService
         {
             try
             {
+                // Shiny GeofenceRegion constructor: (identifier, center, radius)
                 var region = new GeofenceRegion(
-                    identifier: site.Id,
-                    center: new Position(site.Latitude, site.Longitude),
-                    radius: Distance.FromMeters(site.RadiusMeters)
+                    site.Id, // identifier
+                    new Position(site.Latitude, site.Longitude), // center
+                    Distance.FromMeters(site.RadiusMeters) // radius
                 )
                 {
                     NotifyOnEntry = true,
@@ -73,8 +74,7 @@ public class ShinyGeofenceService : IGeofenceService
             }
         }
 
-        var monitoredRegions = await _geofenceManager.GetMonitoredRegions();
-        _logger.LogInformation("Total monitored geofences: {Count}", monitoredRegions.Count);
+        _logger.LogInformation("Geofence registration complete");
     }
 
     public async Task UnregisterAllGeofencesAsync()
