@@ -11,13 +11,13 @@ namespace SiteAttendance.App.Platforms.Android;
 public class AndroidGeofenceService : IGeofenceService
 {
     private readonly ILogger<AndroidGeofenceService> _logger;
-    private readonly GeofencingClient _client;
+    private readonly Android.Gms.Location.GeofencingClient _client;
     private PendingIntent? _pendingIntent;
 
-    public AndroidGeofenceService(ILogger<AndroidGeofenceService> _logger)
+    public AndroidGeofenceService(ILogger<AndroidGeofenceService> logger)
     {
-        this._logger = _logger;
-        _client = LocationServices.GetGeofencingClient(Platform.AppContext);
+        _logger = logger;
+        _client = Android.Gms.Location.LocationServices.GetGeofencingClient(Platform.AppContext);
     }
 
     public async Task<bool> RequestPermissionsAsync()
@@ -56,22 +56,22 @@ public class AndroidGeofenceService : IGeofenceService
     {
         try
         {
-            var geofences = new List<IGeofence>();
+            var geofences = new List<Android.Gms.Location.IGeofence>();
 
             foreach (var site in sites)
             {
-                var geofence = new GeofenceBuilder()
+                var geofence = new Android.Gms.Location.GeofenceBuilder()
                     .SetRequestId(site.Id)
                     .SetCircularRegion(site.Latitude, site.Longitude, site.RadiusMeters)
-                    .SetExpirationDuration(Geofence.NeverExpire)
-                    .SetTransitionTypes(Geofence.GeofenceTransitionEnter | Geofence.GeofenceTransitionExit)
+                    .SetExpirationDuration(Android.Gms.Location.Geofence.NeverExpire)
+                    .SetTransitionTypes(Android.Gms.Location.Geofence.GeofenceTransitionEnter | Android.Gms.Location.Geofence.GeofenceTransitionExit)
                     .Build();
 
                 geofences.Add(geofence);
             }
 
-            var request = new GeofencingRequest.Builder()
-                .SetInitialTrigger(GeofencingRequest.InitialTriggerEnter)
+            var request = new Android.Gms.Location.GeofencingRequest.Builder()
+                .SetInitialTrigger(Android.Gms.Location.GeofencingRequest.InitialTriggerEnter)
                 .AddGeofences(geofences)
                 .Build();
 
@@ -137,7 +137,7 @@ public class GeofenceBroadcastReceiver : BroadcastReceiver
             return;
         }
 
-        var geofencingEvent = GeofencingEvent.FromIntent(intent);
+        var geofencingEvent = Android.Gms.Location.GeofencingEvent.FromIntent(intent);
         if (geofencingEvent == null || geofencingEvent.HasError)
         {
             System.Diagnostics.Debug.WriteLine($"Geofence error: {geofencingEvent?.ErrorCode}");
@@ -154,8 +154,8 @@ public class GeofenceBroadcastReceiver : BroadcastReceiver
 
         var eventType = transition switch
         {
-            Geofence.GeofenceTransitionEnter => "Enter",
-            Geofence.GeofenceTransitionExit => "Exit",
+            Android.Gms.Location.Geofence.GeofenceTransitionEnter => "Enter",
+            Android.Gms.Location.Geofence.GeofenceTransitionExit => "Exit",
             _ => null
         };
 
