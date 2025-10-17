@@ -17,14 +17,35 @@ builder.Services.AddHttpClient();
 // Domain services
 builder.Services.AddSingleton<IClock, SystemClock>();
 
-// Get connection string - Azure App Service sets this as environment variable
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? Environment.GetEnvironmentVariable("POSTGRESQLCONNSTR_DefaultConnection")
-    ?? Environment.GetEnvironmentVariable("DefaultConnection");
+// Get connection string - Azure App Service connection strings are automatically added to Configuration
+// They appear as ConnectionStrings:DefaultConnection
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Log what we found (without exposing password)
+var logger = builder.Logging.Services.BuildServiceProvider().GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+if (!string.IsNullOrEmpty(connectionString))
+{
+    // Mask password for logging
+    var safeConnectionString = System.Text.RegularExpressions.Regex.Replace(
+        connectionString, 
+        @"Password=([^;]+)", 
+        "Password=***");
+    logger.LogInformation("Using connection string: {ConnectionString}", safeConnectionString);
+}
+else
+{
+    logger.LogError("No connection string found!");
+    
+    // Debug: List all configuration keys
+    var allKeys = builder.Configuration.AsEnumerable()
+        .Where(kv => kv.Key.Contains("Connection", StringComparison.OrdinalIgnoreCase))
+        .Select(kv => kv.Key);
+    logger.LogInformation("Available connection-related config keys: {Keys}", string.Join(", ", allKeys));
+}
 
 if (string.IsNullOrEmpty(connectionString))
 {
-    throw new InvalidOperationException("Database connection string not found. Check Azure configuration.");
+    throw new InvalidOperationException("Database connection string 'DefaultConnection' not found. Check Azure App Service connection strings configuration.");
 }
 
 // Add DbContext with PostgreSQL
@@ -59,26 +80,26 @@ try
 {
     using (var scope = app.Services.CreateScope())
     {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var scopeLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         var db = scope.ServiceProvider.GetRequiredService<SiteAttendanceDbContext>();
         
-        logger.LogInformation("Starting database migration...");
+        scopeLogger.LogInformation("Starting database migration...");
         
         // Apply any pending migrations
         await db.Database.MigrateAsync();
         
-        logger.LogInformation("Database migration complete. Seeding data...");
+        scopeLogger.LogInformation("Database migration complete. Seeding data...");
         
         // Seed initial data
         await DbInitializer.SeedAsync(db);
         
-        logger.LogInformation("Database initialization complete!");
+        scopeLogger.LogInformation("Database initialization complete!");
     }
 }
 catch (Exception ex)
 {
-    var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+    var errorLogger = app.Services.GetRequiredService<ILogger<Program>>();
+    errorLogger.LogError(ex, "An error occurred while migrating or seeding the database.");
     
     // In production, we want the app to start even if migration fails
     // The error will be logged and can be fixed later
