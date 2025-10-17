@@ -21,6 +21,19 @@
     <!-- Do NOT set SupportedOSPlatformVersion manually - let SDK infer -->
   </PropertyGroup>
 
+  <!-- Platform-specific source files - CRITICAL FIX -->
+  <ItemGroup>
+    <Compile Remove="Platforms\**\*.cs" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-android'">
+    <Compile Include="Platforms\Android\**\*.cs" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-ios'">
+    <Compile Include="Platforms\iOS\**\*.cs" />
+  </ItemGroup>
+
   <!-- Android-only Google Play Services (conditional on TFM) -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-android'">
     <PackageReference Include="Xamarin.GooglePlayServices.Location" Version="121.3.0.6" />
@@ -29,7 +42,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
-    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
   </ItemGroup>
 
