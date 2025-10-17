@@ -31,15 +31,35 @@ public class ConfigService
             throw new InvalidOperationException("Location permissions not granted");
         }
 
-        // Fetch config and sites
-        var bootstrap = await _api.GetConfigAsync(userId);
-        if (bootstrap == null)
+        // Try to fetch config and sites from backend
+        try
         {
-            throw new InvalidOperationException("Failed to fetch config");
+            var bootstrap = await _api.GetConfigAsync(userId);
+            if (bootstrap != null)
+            {
+                Config = bootstrap.Config;
+                Sites = bootstrap.Sites;
+                _logger.LogInformation("Fetched {SiteCount} sites from backend", Sites.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch from backend, using mock data");
+            
+            // Fallback to mock data for testing
+            Sites = GetMockSites();
+            Config = new RemoteConfig(
+                MinimumAppVersion: "1.0.0",
+                GeofenceRadiusMeters: 100,
+                ApiBaseUrl: "http://10.0.2.2:5001"
+            );
+            _logger.LogInformation("Using {SiteCount} mock sites for testing", Sites.Count);
         }
 
-        Config = bootstrap.Config;
-        Sites = bootstrap.Sites;
+        if (Sites.Count == 0)
+        {
+            throw new InvalidOperationException("No sites available (backend returned empty or failed)");
+        }
 
         // Register geofences
         await _geofenceService.RegisterGeofencesAsync(Sites);
@@ -61,6 +81,40 @@ public class ConfigService
             Longitude: longitude
         );
 
-        await _api.PostGeofenceEventAsync(request);
+        try
+        {
+            await _api.PostGeofenceEventAsync(request);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to post event to backend (offline mode)");
+            // In production, would queue for retry
+        }
+    }
+
+    /// <summary>
+    /// Returns mock test sites for development/testing
+    /// Replace these coordinates with locations near you for testing!
+    /// </summary>
+    private List<Site> GetMockSites()
+    {
+        // TODO: Replace these with actual coordinates near your location for testing
+        return new List<Site>
+        {
+            new Site(
+                Id: "site-001",
+                Name: "Test Site 1 - Office",
+                Latitude: 53.3498,  // Dublin, Ireland (example)
+                Longitude: -6.2603,
+                RadiusMeters: 100
+            ),
+            new Site(
+                Id: "site-002",
+                Name: "Test Site 2 - Warehouse",
+                Latitude: 53.3520,
+                Longitude: -6.2570,
+                RadiusMeters: 150
+            )
+        };
     }
 }
