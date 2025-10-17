@@ -3,11 +3,12 @@ using Microsoft.Maui.Hosting;
 
 namespace SiteAttendance.App;
 
-public class Program
+public static class Program
 {
     static void Main(string[] args)
     {
-        var app = MauiProgram.CreateMauiApp();
-        app.Run();
+        MauiProgram
+            .CreateMauiApp()
+            .Run();
     }
 }
