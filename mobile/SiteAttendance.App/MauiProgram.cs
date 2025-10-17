@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using SiteAttendance.App.Core;
 using SiteAttendance.App.Services;
+using Shiny;
 
 namespace SiteAttendance.App;
 
@@ -17,6 +18,9 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
+        // Configure Shiny for background services and geofencing
+        builder.UseShiny();
+
 #if DEBUG
         builder.Logging.AddDebug();
 #endif
@@ -26,12 +30,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<ConfigService>();
         builder.Services.AddSingleton<LocalNotificationService>();
 
-        // Platform-specific geofencing
-#if ANDROID
-        builder.Services.AddSingleton<IGeofenceService, Platforms.Android.AndroidGeofenceService>();
-#elif IOS
-        builder.Services.AddSingleton<IGeofenceService, Platforms.iOS.IOSGeofenceService>();
-#endif
+        // Register Shiny geofencing service wrapper
+        builder.Services.AddSingleton<IGeofenceService, Services.ShinyGeofenceService>();
+
+        // Register geofence event delegate
+        builder.Services.AddGeofencing<Services.SiteAttendanceGeofenceDelegate>();
 
         // Register pages
         builder.Services.AddTransient<MainPage>();
