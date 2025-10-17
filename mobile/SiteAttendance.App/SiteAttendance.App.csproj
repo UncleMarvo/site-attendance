@@ -21,9 +21,6 @@
     <!-- Platform minimum versions -->
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">23.0</SupportedOSPlatformVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.0</SupportedOSPlatformVersion>
-    
-    <!-- Fix duplicate class issue with AndroidX SavedState -->
-    <AndroidEnableDesugar>false</AndroidEnableDesugar>
   </PropertyGroup>
 
   <!-- Platform-specific source files - CRITICAL FIX -->
@@ -39,12 +36,10 @@
     <Compile Include="Platforms\iOS\**\*.cs" />
   </ItemGroup>
 
-  <!-- Android-only Google Play Services (conditional on TFM) -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-android'">
-    <PackageReference Include="Xamarin.GooglePlayServices.Location" Version="121.3.0.6" />
-    <PackageReference Include="Xamarin.GooglePlayServices.Tasks" Version="118.4.0" />
-  </ItemGroup>
-
+  <!-- REMOVED: Google Play Services packages temporarily until we implement proper geofencing -->
+  <!-- These were causing AndroidX SavedState class conflicts -->
+  <!-- Will add back when implementing real Android geofencing -->
+  
   <ItemGroup>
     <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
