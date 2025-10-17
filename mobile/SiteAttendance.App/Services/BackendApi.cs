@@ -9,11 +9,8 @@ public class BackendApi
     private readonly HttpClient _http;
     private readonly ILogger<BackendApi> _logger;
 
-    // TODO: Replace with your backend URL
-    // Android emulator: http://10.0.2.2:5001
-    // iOS simulator: https://localhost:5001
-    // Physical device: https://<YOUR_LAN_IP>:5001
-    private const string BaseUrl = "http://10.0.2.2:5001";
+    // Azure backend URL - deployed and working!
+    private const string BaseUrl = "https://siteattendance-api-1411956859.azurewebsites.net";
 
     public BackendApi(ILogger<BackendApi> logger)
     {
