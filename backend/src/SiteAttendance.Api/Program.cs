@@ -17,11 +17,25 @@ builder.Services.AddHttpClient();
 // Domain services
 builder.Services.AddSingleton<IClock, SystemClock>();
 
+// Get connection string - Azure App Service sets this as environment variable
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? Environment.GetEnvironmentVariable("POSTGRESQLCONNSTR_DefaultConnection")
+    ?? Environment.GetEnvironmentVariable("DefaultConnection");
+
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new InvalidOperationException("Database connection string not found. Check Azure configuration.");
+}
+
 // Add DbContext with PostgreSQL
 builder.Services.AddDbContext<SiteAttendanceDbContext>(options =>
     options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        npgsqlOptions => npgsqlOptions.EnableRetryOnFailure()
+        connectionString,
+        npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 3,
+            maxRetryDelay: TimeSpan.FromSeconds(5),
+            errorCodesToAdd: null
+        )
     ));
 
 // Repositories (EF Core + PostgreSQL)
@@ -40,21 +54,49 @@ builder.Services.AddScoped<GetMobileBootstrap>();
 
 var app = builder.Build();
 
-// Initialize database and seed data
-using (var scope = app.Services.CreateScope())
+// Initialize database and seed data (with error handling for production)
+try
 {
-    var db = scope.ServiceProvider.GetRequiredService<SiteAttendanceDbContext>();
+    using (var scope = app.Services.CreateScope())
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var db = scope.ServiceProvider.GetRequiredService<SiteAttendanceDbContext>();
+        
+        logger.LogInformation("Starting database migration...");
+        
+        // Apply any pending migrations
+        await db.Database.MigrateAsync();
+        
+        logger.LogInformation("Database migration complete. Seeding data...");
+        
+        // Seed initial data
+        await DbInitializer.SeedAsync(db);
+        
+        logger.LogInformation("Database initialization complete!");
+    }
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "An error occurred while migrating or seeding the database.");
     
-    // Apply any pending migrations
-    await db.Database.MigrateAsync();
-    
-    // Seed initial data
-    await DbInitializer.SeedAsync(db);
+    // In production, we want the app to start even if migration fails
+    // The error will be logged and can be fixed later
+    if (app.Environment.IsDevelopment())
+    {
+        throw; // In development, fail fast
+    }
 }
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+else
+{
+    // Enable Swagger in production for testing
     app.UseSwagger();
     app.UseSwaggerUI();
 }
