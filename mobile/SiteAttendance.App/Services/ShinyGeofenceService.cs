@@ -25,13 +25,31 @@ public class ShinyGeofenceService : IGeofenceService
     {
         _logger.LogInformation("Requesting location permissions");
 
+        // Request access through Shiny's geofence manager
         var status = await _geofenceManager.RequestAccess();
+        
+        _logger.LogInformation("Shiny permission status: {Status}", status);
 
-        var granted = status == AccessState.Available;
-        _logger.LogInformation("Location permission status: {Status} (Granted: {Granted})", 
-            status, granted);
+        // Check if we got the required permissions
+        if (status == AccessState.Available)
+        {
+            _logger.LogInformation("All location permissions granted");
+            return true;
+        }
 
-        return granted;
+        // Log specific permission issues
+        _logger.LogWarning("Location permissions not fully granted. Status: {Status}", status);
+        
+        if (status == AccessState.Restricted)
+        {
+            _logger.LogWarning("Background location is restricted. User needs to grant 'Allow all the time' in Settings.");
+        }
+
+        // For Android 10+, background location requires separate permission
+        // The user needs to select "Allow all the time" in the permission dialog
+        // If they selected "Allow only while using the app", geofencing won't work
+        
+        return false;
     }
 
     public async Task RegisterGeofencesAsync(List<Site> sites)
