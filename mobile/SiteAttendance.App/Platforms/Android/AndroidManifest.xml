@@ -6,6 +6,16 @@
         android:roundIcon="@mipmap/appicon_round" 
         android:supportsRtl="true"
         android:usesCleartextTraffic="true">
+        
+        <!-- Shiny Geofence Broadcast Receiver - REQUIRED for geofencing -->
+        <receiver 
+            android:name="com.shiny.locations.GeofenceBroadcastReceiver" 
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.shiny.locations.GeofenceBroadcastReceiver.INTENT_ACTION" />
+            </intent-filter>
+        </receiver>
     </application>
     
     <!-- Network permissions -->
