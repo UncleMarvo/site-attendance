@@ -1,5 +1,6 @@
 using Android.App;
 using Android.Runtime;
+using Shiny;
 
 namespace SiteAttendance.App;
 
@@ -12,4 +13,12 @@ public class MainApplication : MauiApplication
     }
 
     protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
+
+    public override void OnCreate()
+    {
+        base.OnCreate();
+        
+        // Initialize Shiny for Android background services
+        this.ShinyOnCreate();
+    }
 }
