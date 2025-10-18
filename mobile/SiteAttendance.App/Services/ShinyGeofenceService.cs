@@ -69,6 +69,7 @@ public class ShinyGeofenceService : IGeofenceService
         _logger.LogInformation("🧹 Cleared all existing geofences");
 
         // Register each site as a geofence
+        int successCount = 0;
         foreach (var site in sites)
         {
             try
@@ -86,6 +87,7 @@ public class ShinyGeofenceService : IGeofenceService
                 };
 
                 await _geofenceManager.StartMonitoring(region);
+                successCount++;
                 _logger.LogWarning("✅ Registered geofence: {SiteId} ({SiteName}) at ({Lat}, {Lon}) radius {Radius}m",
                     site.Id, site.Name, site.Latitude, site.Longitude, site.RadiusMeters);
             }
@@ -95,16 +97,8 @@ public class ShinyGeofenceService : IGeofenceService
             }
         }
 
-        // Verify what got registered
-        var monitoredRegions = await _geofenceManager.GetMonitoredRegions();
-        _logger.LogWarning("🎯 Total geofences now being monitored: {Count}", monitoredRegions.Count());
-        foreach (var region in monitoredRegions)
-        {
-            _logger.LogInformation("   - Monitoring: {Id} at ({Lat}, {Lon})", 
-                region.Identifier, region.Center.Latitude, region.Center.Longitude);
-        }
-
-        _logger.LogWarning("✅ Geofence registration complete!");
+        _logger.LogWarning("✅ Geofence registration complete! {Success}/{Total} geofences registered", 
+            successCount, sites.Count);
     }
 
     public async Task UnregisterAllGeofencesAsync()
