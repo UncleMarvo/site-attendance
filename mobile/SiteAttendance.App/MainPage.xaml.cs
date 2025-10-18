@@ -15,29 +15,38 @@ public partial class MainPage : ContentPage
         _logger = logger;
         _configService = configService;
         _backendApi = backendApi;
+        
+        System.Diagnostics.Debug.WriteLine("🎯🎯🎯 MainPage CONSTRUCTOR called!");
+        _logger.LogWarning("🎯🎯🎯 MainPage constructor - logger working!");
     }
 
     private async void OnInitializeClicked(object sender, EventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine("🚨🚨🚨 OnInitializeClicked CALLED!");
+        
         try
         {
             StatusLabel.Text = "Testing connection...";
-            _logger.LogInformation("Starting initialization test");
+            _logger.LogWarning("🚨 Starting initialization test");
+            System.Diagnostics.Debug.WriteLine("Starting initialization...");
             
             // First, test if we can reach ANY endpoint
             StatusLabel.Text = "Testing basic connectivity...";
             await TestConnectivityAsync();
             
             StatusLabel.Text = "Requesting permissions...";
+            System.Diagnostics.Debug.WriteLine("Calling InitializeAsync...");
             await _configService.InitializeAsync("user-demo");
             
             StatusLabel.Text = $"✅ Monitoring {_configService.Sites.Count} sites!";
-            _logger.LogInformation("Initialization successful");
+            _logger.LogWarning("✅ Initialization successful - {Count} sites", _configService.Sites.Count);
+            System.Diagnostics.Debug.WriteLine($"✅ SUCCESS! Monitoring {_configService.Sites.Count} sites");
         }
         catch (Exception ex)
         {
             StatusLabel.Text = $"❌ Error: {ex.Message}";
             _logger.LogError(ex, "Initialization failed");
+            System.Diagnostics.Debug.WriteLine($"❌ ERROR: {ex}");
         }
     }
 
@@ -46,6 +55,7 @@ public partial class MainPage : ContentPage
         try
         {
             _logger.LogInformation("Testing basic HTTP connectivity");
+            System.Diagnostics.Debug.WriteLine("Testing connectivity...");
             
             using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
             
@@ -75,6 +85,8 @@ public partial class MainPage : ContentPage
 
     private async void OnSimulateEnterClicked(object sender, EventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine("🚨🚨🚨 OnSimulateEnterClicked CALLED!");
+        
         if (_configService.Sites.Count == 0)
         {
             StatusLabel.Text = "Initialize first!";
@@ -85,6 +97,7 @@ public partial class MainPage : ContentPage
         {
             var firstSite = _configService.Sites[0];
             StatusLabel.Text = $"Simulating ENTER for {firstSite.Name}...";
+            System.Diagnostics.Debug.WriteLine($"Simulating ENTER for {firstSite.Name}");
 
             await _configService.SimulateGeofenceEventAsync(
                 firstSite.Id,
@@ -94,16 +107,20 @@ public partial class MainPage : ContentPage
             );
 
             StatusLabel.Text = $"✅ ENTER event sent for {firstSite.Name}";
+            System.Diagnostics.Debug.WriteLine($"✅ ENTER event sent successfully");
         }
         catch (Exception ex)
         {
             StatusLabel.Text = $"❌ Error: {ex.Message}";
             _logger.LogError(ex, "Simulate enter failed");
+            System.Diagnostics.Debug.WriteLine($"❌ Simulate enter error: {ex}");
         }
     }
 
     private async void OnSimulateExitClicked(object sender, EventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine("🚨🚨🚨 OnSimulateExitClicked CALLED!");
+        
         if (_configService.Sites.Count == 0)
         {
             StatusLabel.Text = "Initialize first!";
