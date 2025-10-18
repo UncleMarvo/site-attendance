@@ -19,30 +19,32 @@ public class ShinyGeofenceService : IGeofenceService
     {
         _geofenceManager = geofenceManager;
         _logger = logger;
+        
+        _logger.LogInformation("🎯 ShinyGeofenceService CONSTRUCTOR called");
     }
 
     public async Task<bool> RequestPermissionsAsync()
     {
-        _logger.LogInformation("Requesting location permissions");
+        _logger.LogWarning("🔐 Requesting location permissions...");
 
         // Request access through Shiny's geofence manager
         var status = await _geofenceManager.RequestAccess();
         
-        _logger.LogInformation("Shiny permission status: {Status}", status);
+        _logger.LogWarning("🔐 Shiny permission status: {Status}", status);
 
         // Check if we got the required permissions
         if (status == AccessState.Available)
         {
-            _logger.LogInformation("All location permissions granted");
+            _logger.LogWarning("✅ All location permissions granted!");
             return true;
         }
 
         // Log specific permission issues
-        _logger.LogWarning("Location permissions not fully granted. Status: {Status}", status);
+        _logger.LogError("❌ Location permissions not fully granted. Status: {Status}", status);
         
         if (status == AccessState.Restricted)
         {
-            _logger.LogWarning("Background location is restricted. User needs to grant 'Allow all the time' in Settings.");
+            _logger.LogError("⚠️ Background location is RESTRICTED. User needs to grant 'Allow all the time' in Settings!");
         }
 
         // For Android 10+, background location requires separate permission
@@ -56,14 +58,15 @@ public class ShinyGeofenceService : IGeofenceService
     {
         if (sites == null || sites.Count == 0)
         {
-            _logger.LogWarning("No sites to register for geofencing");
+            _logger.LogWarning("⚠️ No sites to register for geofencing");
             return;
         }
 
-        _logger.LogInformation("Registering {Count} geofences", sites.Count);
+        _logger.LogWarning("📍 Registering {Count} geofences...", sites.Count);
 
         // Clear existing geofences first
         await _geofenceManager.StopAllMonitoring();
+        _logger.LogInformation("🧹 Cleared all existing geofences");
 
         // Register each site as a geofence
         foreach (var site in sites)
@@ -83,22 +86,31 @@ public class ShinyGeofenceService : IGeofenceService
                 };
 
                 await _geofenceManager.StartMonitoring(region);
-                _logger.LogInformation("Registered geofence: {SiteId} ({SiteName}) at ({Lat}, {Lon}) radius {Radius}m",
+                _logger.LogWarning("✅ Registered geofence: {SiteId} ({SiteName}) at ({Lat}, {Lon}) radius {Radius}m",
                     site.Id, site.Name, site.Latitude, site.Longitude, site.RadiusMeters);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to register geofence for site {SiteId}", site.Id);
+                _logger.LogError(ex, "❌ Failed to register geofence for site {SiteId}", site.Id);
             }
         }
 
-        _logger.LogInformation("Geofence registration complete");
+        // Verify what got registered
+        var monitoredRegions = await _geofenceManager.GetMonitoredRegions();
+        _logger.LogWarning("🎯 Total geofences now being monitored: {Count}", monitoredRegions.Count());
+        foreach (var region in monitoredRegions)
+        {
+            _logger.LogInformation("   - Monitoring: {Id} at ({Lat}, {Lon})", 
+                region.Identifier, region.Center.Latitude, region.Center.Longitude);
+        }
+
+        _logger.LogWarning("✅ Geofence registration complete!");
     }
 
     public async Task UnregisterAllGeofencesAsync()
     {
-        _logger.LogInformation("Unregistering all geofences");
+        _logger.LogInformation("🧹 Unregistering all geofences");
         await _geofenceManager.StopAllMonitoring();
-        _logger.LogInformation("All geofences unregistered");
+        _logger.LogInformation("✅ All geofences unregistered");
     }
 }
