@@ -20,10 +20,14 @@ public class SiteAttendanceGeofenceDelegate : IGeofenceDelegate
         _logger = logger;
         _api = api;
         _notificationService = notificationService;
+        
+        _logger.LogInformation("🎯 SiteAttendanceGeofenceDelegate CONSTRUCTOR called - delegate is registered!");
     }
 
     public async Task OnStatusChanged(GeofenceState newStatus, GeofenceRegion region)
     {
+        _logger.LogWarning("🚨 GEOFENCE EVENT TRIGGERED! State={State}, Region={RegionId}", newStatus, region.Identifier);
+        
         var eventType = newStatus switch
         {
             GeofenceState.Entered => "Enter",
@@ -37,7 +41,7 @@ public class SiteAttendanceGeofenceDelegate : IGeofenceDelegate
             return;
         }
 
-        _logger.LogInformation("Geofence {EventType}: {SiteId} at {Timestamp}", 
+        _logger.LogWarning("🎯 Processing {EventType} event for site {SiteId} at {Timestamp}", 
             eventType, region.Identifier, DateTime.UtcNow);
 
         try
@@ -51,7 +55,9 @@ public class SiteAttendanceGeofenceDelegate : IGeofenceDelegate
                 Longitude: region.Center.Longitude
             );
 
+            _logger.LogWarning("📡 Posting event to backend...");
             await _api.PostGeofenceEventAsync(request);
+            _logger.LogWarning("✅ Event posted successfully!");
 
             // Show local notification (sync method)
             _notificationService.ShowNotification(
@@ -63,7 +69,7 @@ public class SiteAttendanceGeofenceDelegate : IGeofenceDelegate
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process geofence event for {SiteId}", region.Identifier);
+            _logger.LogError(ex, "❌ Failed to process geofence event for {SiteId}", region.Identifier);
             
             // Still show notification even if backend fails
             _notificationService.ShowNotification(
