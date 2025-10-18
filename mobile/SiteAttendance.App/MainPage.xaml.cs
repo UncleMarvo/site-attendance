@@ -18,11 +18,15 @@ public partial class MainPage : ContentPage
         
         System.Diagnostics.Debug.WriteLine("🎯🎯🎯 MainPage CONSTRUCTOR called!");
         _logger.LogWarning("🎯🎯🎯 MainPage constructor - logger working!");
+        
+        // VISIBLE confirmation
+        StatusLabel.Text = "App loaded! Ready to test.";
     }
 
     private async void OnInitializeClicked(object sender, EventArgs e)
     {
         System.Diagnostics.Debug.WriteLine("🚨🚨🚨 OnInitializeClicked CALLED!");
+        StatusLabel.Text = "🚨 BUTTON CLICKED - Code is running!";
         
         try
         {
@@ -86,6 +90,7 @@ public partial class MainPage : ContentPage
     private async void OnSimulateEnterClicked(object sender, EventArgs e)
     {
         System.Diagnostics.Debug.WriteLine("🚨🚨🚨 OnSimulateEnterClicked CALLED!");
+        StatusLabel.Text = "🚨 SIMULATE ENTER CLICKED!";
         
         if (_configService.Sites.Count == 0)
         {
@@ -120,6 +125,7 @@ public partial class MainPage : ContentPage
     private async void OnSimulateExitClicked(object sender, EventArgs e)
     {
         System.Diagnostics.Debug.WriteLine("🚨🚨🚨 OnSimulateExitClicked CALLED!");
+        StatusLabel.Text = "🚨 SIMULATE EXIT CLICKED!";
         
         if (_configService.Sites.Count == 0)
         {
